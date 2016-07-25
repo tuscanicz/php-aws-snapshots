@@ -1,137 +1,152 @@
 <?php
-class snapshots
+
+class Snapshots
 {
-	function __construct($volumes)
-	{
-		$this->volumes = $volumes;
-	}
-	
-	function run()
-	{
-		foreach($this->volumes as $volume_id => $options)
-		{
-			if(!self::setOptions($options)){
-				echo 'Volume '.$volume_id.' not ran due to invalid config options'.PHP_EOL;
-				continue;
-			};
-			
-			$snapshots = self::getSnapshots(array('volume-id'=>$volume_id,'description'=>$this->options['description']));
-			if(!$snapshots) continue;
-			
-			if(self::shouldCreate($snapshots)){
-				self::create($volume_id,$this->options['description']);
-			}
-			
-			// delete extra snapshots base on number of 'snapshots' option
-			self::deleteExtra($volume_id);
-		}
+    private $awsCliPath;
 
-		return true;
-	}
-	
-	/**
-	 * Check if a snapshot should be created based set options (number of snapshots & interval)
-	 * @param  object $snapshots list of snapshots return from AWS CLI
-	 * @return boolean
-	 */
-	private function shouldCreate($snapshots)
-	{
-		// create snapshot if none exist and the option is set for 1 or more
-		if(count($snapshots->Snapshots) < 1 && $this->options['snapshots'] > 0) return true;
-		
-		$interval = (new \DateTime())->modify('-'.$this->options['interval']);
-		$last_snapshot = new DateTime(end($snapshots->Snapshots)->StartTime);
+    public function __construct($awsCliPath)
+    {
+        $this->awsCliPath = $awsCliPath;
+    }
 
-		// use same timezones for comparison below
-		$interval->setTimezone(new DateTimeZone('EDT'));
-		$last_snapshot->setTimezone(new DateTimeZone('EDT'));
+    public function run(array $volumes)
+    {
+        foreach ($volumes as $volumeId => $volumeOptions) {
+            $options = $this->createOptions($volumeId, $volumeOptions);
+            $snapshots = $this->getSnapshots([
+                'volume-id' => $volumeId,
+                'description' => $options['description']
+            ]);
+            if ($snapshots) {
+                if ($this->shouldCreate($options, $snapshots)) {
+                    $this->create($volumeId, $options['description']);
+                }
+                $this->deleteExtra($options, $volumeId);
+            }
+        }
 
-		// check if last snapshot is before the interval time-frame
-		if($last_snapshot < $interval) return true;
-		
-		return false;
-	}
+        return true;
+    }
 
-	/**
-	 * Create new EBS snapshot
-	 * @param  string $volume_id
-	 * @param  string $description
-	 * @return string
-	 */
-	public function create($volume_id,$description='PHP Snapshots')
-	{
-		$cmd = sprintf('/usr/local/bin/aws ec2 create-snapshot --volume-id %s --description "'.$description.'"',escapeshellarg($volume_id));
-		return shell_exec($cmd);
-	}
+    /**
+     * Check if a snapshot should be created based on the number of snapshots & interval
+     *
+     * @param array $options
+     * @param object $snapshots list of snapshots return from AWS CLI
+     * @return boolean
+     */
+    private function shouldCreate(array $options, $snapshots)
+    {
+        // create snapshot if none exist and the option is set for 1 or more
+        if (count($snapshots->Snapshots) < 1 && $options['snapshots'] > 0) {
+            return true;
+        }
 
-	/**
-	 * Delete snapshot
-	 * @param  string $snapshot_id
-	 * @return string
-	 */
-	public function delete($snapshot_id)
-	{
-		$cmd = sprintf('/usr/local/bin/aws ec2 delete-snapshot --snapshot-id %s',escapeshellarg($snapshot_id));
-		return shell_exec($cmd);
-	}
-	
-	/**
-	 * Delete extra snapshots if $snapshot limit is met
-	 * @param  string $volume_id
-	 * @return string
-	 */
-	private function deleteExtra($volume_id)
-	{
-		$snapshots = self::getSnapshots(array('volume-id'=>$volume_id,'description'=>$this->options['description']));
-		$snapshot_count = count($snapshots->Snapshots);
-		
-		if($snapshot_count <= $this->options['snapshots']) return false;
-		
-		for($x=0;$x<$snapshot_count - $this->options['snapshots']; ++$x)
-		{
-			self::delete($snapshots->Snapshots[$x]->SnapshotId);
-		}		
-	}
-	
-	/**
-	 * Get list of snapshots based on filters
-	 * @param  array $filters
-	 * @return mixed  json object on true
-	 */
-	public function getSnapshots($filters=array())
-	{
-		$cmd_filters = false;
-		foreach($filters as $name => $value) $cmd_filters .= 'Name='.escapeshellarg($name).',Values='.escapeshellarg($value).' ';
+        $interval = (new \DateTime())->modify('-' . $options['interval']);
+        $lastSnapshot = new DateTime(end($snapshots->Snapshots)->StartTime);
 
-		$cmd = '/usr/local/bin/aws ec2 describe-snapshots '.($cmd_filters ? '--filters '.trim($cmd_filters) : '');
-		$response = shell_exec($cmd);
+        // use same timezones for comparison below
+        $interval->setTimezone(new DateTimeZone('EDT'));
+        $lastSnapshot->setTimezone(new DateTimeZone('EDT'));
 
-		$snapshots = json_decode($response);
-		if(!$snapshots) return false;
+        // check if last snapshot is before the interval time-frame
+        if ($lastSnapshot < $interval) {
+            return true;
+        }
 
-		// sort asc by date
-		usort($snapshots->Snapshots, function($a,$b){
-			return strtotime($a->StartTime) - strtotime($b->StartTime);
-		});
+        return false;
+    }
 
-		return $snapshots;
-	}
+    /**
+     * Create a new EBS snapshot
+     *
+     * @param  string $volumeId
+     * @param  string $description
+     * @return string
+     */
+    private function create($volumeId, $description)
+    {
+        $cmd = sprintf($this->awsCliPath . ' ec2 create-snapshot --volume-id %s --description "' . $description . '"', escapeshellarg($volumeId));
 
-	/**
-	 * Sets volume options to current object
-	 * @param  array $options
-	 * @return boolean
-	 */
-	private function setOptions($options)
-	{
-		if(!isset($options['snapshots']) || !isset($options['interval'])) return false;
+        return shell_exec($cmd);
+    }
 
-		$this->options = array(
-			'snapshots'   => (int) $options['snapshots'],
-			'interval'    => $options['interval'],
-			'description' => $options['description'],
-		);
-		
-		return true;
-	}
+    /**
+     * Delete a snapshot
+     *
+     * @param  string $snapshotId
+     * @return string
+     */
+    private function delete($snapshotId)
+    {
+        $cmd = sprintf($this->awsCliPath . ' ec2 delete-snapshot --snapshot-id %s', escapeshellarg($snapshotId));
+
+        return shell_exec($cmd);
+    }
+
+    /**
+     * Delete extra snapshots if $snapshot limit is met
+     *
+     * @param  array $options
+     * @param  string $volumeId
+     *
+     * @return string
+     */
+    private function deleteExtra(array $options, $volumeId)
+    {
+        $snapshots = $this->getSnapshots(['volume-id' => $volumeId, 'description' => $options['description']]);
+        $snapshotCount = count($snapshots->Snapshots);
+
+        if ($snapshotCount > $options['snapshots']) {
+            for ($x = 0; $x < $snapshotCount - $options['snapshots']; ++$x) {
+                $this->delete($snapshots->Snapshots[$x]->SnapshotId);
+            }
+        }
+    }
+
+    /**
+     * Get list of snapshots based on filters
+     *
+     * @param  array $filters
+     *
+     * @return mixed  json object on true
+     */
+    private function getSnapshots($filters = [])
+    {
+        $cmd_filters = false;
+        foreach ($filters as $name => $value) $cmd_filters .= 'Name=' . escapeshellarg($name) . ',Values=' . escapeshellarg($value) . ' ';
+
+        $cmd = '/usr/local/bin/aws ec2 describe-snapshots ' . ($cmd_filters ? '--filters ' . trim($cmd_filters) : '');
+        $response = shell_exec($cmd);
+
+        $snapshots = json_decode($response);
+        if (!$snapshots) return false;
+
+        // sort asc by date
+        usort($snapshots->Snapshots, function ($a, $b) {
+            return strtotime($a->StartTime) - strtotime($b->StartTime);
+        });
+
+        return $snapshots;
+    }
+
+    /**
+     * Sets volume options to current object
+     *
+     * @param  string $volumeId
+     * @param  array $volumeOptions
+     * @return array
+     */
+    private function createOptions($volumeId, array $volumeOptions)
+    {
+        if (!isset($volumeOptions['snapshots']) || !isset($volumeOptions['interval'])) {
+            throw new Exception('Volume ' . $volumeId . ' not ran due to invalid config options');
+        }
+
+        return [
+            'snapshots' => (int)$volumeOptions['snapshots'],
+            'interval' => $volumeOptions['interval'],
+            'description' => $volumeOptions['description'],
+        ];
+    }
 }

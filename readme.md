@@ -15,13 +15,17 @@ This assumes you've already installed and setup [AWS CLI](http://aws.amazon.com/
 ### 1. Create PHP file to load class and hold snapshot configuration
 ```php
 <?php
+
 require_once('snapshots.php');
-$volumes = array(
-   'vol-123af85a' => array('snapshots' => 7, 'interval' => '1 day', 'description' => 'dev server backup'),
-   'vol-321bg96c' => array('snapshots' => 4, 'interval' => '1 week', 'description' => 'image server'),
-);
-$snapshots = new snapshots($volumes);
-$snapshots->run();
+
+$awsCliPath = '/usr/local/bin/aws';
+$volumes = [
+   'vol-123af85a' => ['snapshots' => 7, 'interval' => '1 day', 'description' => 'dev server backup'],
+   'vol-321bg96c' => ['snapshots' => 4, 'interval' => '1 week', 'description' => 'image server'],
+];
+
+$snapshots = new Snapshots($awsCliPath);
+$snapshots->run($volumes);
 ```
 ### 2. Add cron job
 The cron job schedule will depend on your configuration. The class honors the interval setting, but you may not want it to run every minute of every day when you just need a nightly backup.
@@ -84,4 +88,4 @@ aws configure
 ```
 
 ## Questions, issues or suggestions
-Please use the [issues section](https://github.com/jveldboom/php-aws-snapshots/issues) for any questions or issues you have. Also, suggestions, pull request or any help is most welcome!
+Please use the [issues section](https://github.com/tuscanicz/php-aws-snapshots/issues) for any questions or issues you have. Also, suggestions, pull request or any help is most welcome!
