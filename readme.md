@@ -16,15 +16,15 @@ This assumes you've already installed and setup [AWS CLI](http://aws.amazon.com/
 ```php
 <?php
 
-require_once('snapshots.php');
-
 $awsCliPath = '/usr/local/bin/aws';
 $volumes = [
-   'vol-123af85a' => ['snapshots' => 7, 'interval' => '1 day', 'description' => 'dev server backup'],
-   'vol-321bg96c' => ['snapshots' => 4, 'interval' => '1 week', 'description' => 'image server'],
+   new \Tuscanicz\AwsSnapshots\Options\VolumeOptions('vol-123af85a', 7, '1 day', 'dev server backup'),
+   new \Tuscanicz\AwsSnapshots\Options\VolumeOptions('vol-321bg96c', 4, '1 week', 'image server'),
 ];
 
-$snapshots = new Snapshots($awsCliPath);
+$awsCliHandler = new \Tuscanicz\AwsSnapshots\Shell\AwsCliHandler($awsCliPath);
+
+$snapshots = new \Tuscanicz\AwsSnapshots\Snapshots($awsCliHandler);
 $snapshots->run($volumes);
 ```
 ### 2. Add cron job
@@ -83,7 +83,7 @@ This is a minimal policy that includes ONLY the permissions needed to work. You 
 sudo apt-get install python-pip php5-cli
 sudo pip install awscli
 
-// must set region - ie: us-east-1, us-west-1
+// must set credentials (Access Key ID, Secret Access Key), region - ie: us-east-1, us-west-1
 aws configure
 ```
 
