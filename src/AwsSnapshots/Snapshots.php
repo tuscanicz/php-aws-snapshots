@@ -1,9 +1,9 @@
 <?php
 
-namespace Tuscanicz\AwsSnapshots;
+namespace AwsSnapshots;
 
-use Tuscanicz\AwsSnapshots\Options\VolumeOptions;
-use Tuscanicz\AwsSnapshots\Shell\AwsCliHandler;
+use AwsSnapshots\Options\VolumeOptions;
+use AwsSnapshots\Cli\AwsCliHandler;
 
 class Snapshots
 {

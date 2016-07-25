@@ -1,6 +1,6 @@
 <?php
 
-namespace Tuscanicz\AwsSnapshots\Options;
+namespace AwsSnapshots\Options;
 
 class VolumeOptions
 {

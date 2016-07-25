@@ -1,6 +1,6 @@
 <?php
 
-namespace Tuscanicz\AwsSnapshots\Shell;
+namespace AwsSnapshots\Cli;
 
 class AwsCliHandler
 {
