@@ -1,0 +1,20 @@
+{
+  "name": "tuscanicz/php-aws-snapshots",
+  "type": "library",
+  "description": "A simple library that manages AWS backups from PHP.",
+  "keywords": ["aws", "snapshots", "manage"],
+  "homepage": "https://github.com/tuscanicz/php-aws-snapshots",
+  "license": "MIT",
+  "authors": [
+	{
+	  "name": "Petr Bechyne",
+	  "email": "tuscanicz@gmail.com"
+	}
+  ],
+  "require": {
+	"php": ">=5.3.2"
+  },
+  "autoload": {
+	"psr-4": {"AwsSnapshots\\": "src/AwsSnapshots"}
+  }
+}
