@@ -18,13 +18,13 @@ This assumes you've already installed and setup [AWS CLI](http://aws.amazon.com/
 
 $awsCliPath = '/usr/local/bin/aws';
 $volumes = [
-   new \Tuscanicz\AwsSnapshots\Options\VolumeOptions('vol-123af85a', 7, '1 day', 'dev server backup'),
-   new \Tuscanicz\AwsSnapshots\Options\VolumeOptions('vol-321bg96c', 4, '1 week', 'image server'),
+   new \AwsSnapshots\Options\VolumeOptions('vol-123af85a', 7, '1 day', 'dev server backup'),
+   new \AwsSnapshots\Options\VolumeOptions('vol-321bg96c', 4, '1 week', 'image server'),
 ];
 
-$awsCliHandler = new \Tuscanicz\AwsSnapshots\Shell\AwsCliHandler($awsCliPath);
+$awsCliHandler = new \AwsSnapshots\Cli\AwsCliHandler($awsCliPath);
 
-$snapshots = new \Tuscanicz\AwsSnapshots\Snapshots($awsCliHandler);
+$snapshots = new \AwsSnapshots\Snapshots($awsCliHandler);
 $snapshots->run($volumes);
 ```
 ### 2. Add cron job
