@@ -16,14 +16,15 @@ class Snapshots
 
     /**
      * @param VolumeOptions[] $volumes
+     * @param string $volumesPrefix = Options::VOLUMES_DESCRIPTION_DEFAULT_PREFIX (optional)
      */
-    public function run(array $volumes)
+    public function run(array $volumes, $volumesPrefix = VolumeOptions::VOLUMES_DESCRIPTION_DEFAULT_PREFIX)
     {
         foreach ($volumes as $volume) {
-            if ($this->shouldCreate($volume)) {
-                $this->awsCliHandler->createSnapshot($volume->getVolumeId(), $volume->getDescription());
+            if ($this->shouldCreate($volume, $volumesPrefix)) {
+                $this->awsCliHandler->createSnapshot($volume->getVolumeId(), $volumesPrefix . $volume->getDescription());
             }
-            $this->deleteExtra($volume);
+            $this->deleteExtra($volume, $volumesPrefix);
         }
     }
 
@@ -31,13 +32,14 @@ class Snapshots
      * Check if a snapshot should be created based on the number of snapshots & interval
      *
      * @param VolumeOptions $options
+     * @param string $volumesPrefix
      * @return boolean
      */
-    private function shouldCreate(VolumeOptions $options)
+    private function shouldCreate(VolumeOptions $options, $volumesPrefix)
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
-            'volume-id' => escapeshellarg($options->getVolumeId()),
-            'description' => 'scheduled-snapshot-' . escapeshellarg($options->getDescription())
+            'volume-id' => $options->getVolumeId(),
+            'description' => $volumesPrefix . $options->getDescription()
         ]);
 
         // should create a snapshot if none exist and have to be at least one
@@ -64,14 +66,15 @@ class Snapshots
      * Delete extra snapshots if $snapshot limit is met
      *
      * @param  VolumeOptions $options
+     * @param  string $volumesPrefix
      *
      * @return string
      */
-    private function deleteExtra(VolumeOptions $options)
+    private function deleteExtra(VolumeOptions $options, $volumesPrefix)
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
-            'volume-id' => escapeshellarg($options->getVolumeId()),
-            'description' => 'scheduled-snapshot-*'
+            'volume-id' => $options->getVolumeId(),
+            'description' => $volumesPrefix . '*'
         ]);
         $snapshotCount = count($snapshots->Snapshots);
 

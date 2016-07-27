@@ -20,7 +20,7 @@ configure your volumes. The arguments are:
  - backup interval
  - volume description (you can set it dynamically)
 
-Finally wire the services and test run your cli task.
+Finally wire the services and test run your cli task. You can also change a description prefix that is used by this library to pick snapshots from the server. This is done via the second argument of ```Snapshots::run()```
 ```php
 <?php
 

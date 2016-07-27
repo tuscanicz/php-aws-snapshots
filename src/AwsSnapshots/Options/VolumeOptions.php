@@ -4,6 +4,9 @@ namespace AwsSnapshots\Options;
 
 class VolumeOptions
 {
+    const VOLUMES_DESCRIPTION_DEFAULT_PREFIX = 'scheduled-snapshot-';
+    const VOLUMES_DESCRIPTION_EMPTY_PREFIX = '';
+
     private $volumeId;
     private $snapshotCountLimit;
     private $interval;

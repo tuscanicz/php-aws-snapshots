@@ -21,7 +21,7 @@ class AwsCliHandler
     {
         $cmdFilters = '';
         foreach ($filters as $name => $value) {
-            $cmdFilters .= 'Name=' . $name . ',Values=' . $value . ' ';
+            $cmdFilters .= 'Name=' . escapeshellarg($name) . ',Values=' . escapeshellarg($value) . ' ';
         }
 
         $cmd = $this->awsCliPath . ' ec2 describe-snapshots ' . ($cmdFilters !== '' ? '--filters ' . trim($cmdFilters) : '');
@@ -49,7 +49,7 @@ class AwsCliHandler
      */
     public function createSnapshot($volumeId, $description)
     {
-        $cmd = sprintf($this->awsCliPath . ' ec2 create-snapshot --volume-id %s --description "' . $description . '"', escapeshellarg($volumeId));
+        $cmd = sprintf($this->awsCliPath . ' ec2 create-snapshot --volume-id %s --description "' . escapeshellarg($description) . '"', escapeshellarg($volumeId));
 
         return shell_exec($cmd);
     }
