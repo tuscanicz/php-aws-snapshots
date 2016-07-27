@@ -37,7 +37,7 @@ class Snapshots
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
             'volume-id' => escapeshellarg($options->getVolumeId()),
-            'description' => escapeshellarg($options->getDescription())
+            'description' => 'scheduled-snapshot-' . escapeshellarg($options->getDescription())
         ]);
 
         // should create a snapshot if none exist and have to be at least one
@@ -71,7 +71,7 @@ class Snapshots
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
             'volume-id' => escapeshellarg($options->getVolumeId()),
-            'description' => escapeshellarg($options->getDescription())
+            'description' => 'scheduled-snapshot-*'
         ]);
         $snapshotCount = count($snapshots->Snapshots);
 

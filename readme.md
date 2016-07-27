@@ -13,19 +13,41 @@ For example, you could create a snapshot every day and only keep the last 7 for 
 This assumes you've already installed and setup [AWS CLI](http://aws.amazon.com/cli/) and added the correct IAM permissions within your AWS console.
 
 ### 1. Create PHP file to load class and hold snapshot configuration
+Use [composer](https://getcomposer.org) to autoload all the necessary classes. Setup AWS CLI installation directory (use ```which aws```) and 
+configure your volumes. The arguments are:
+ - volume ID
+ - maximum number of snapshots
+ - backup interval
+ - volume description (you can set it dynamically)
+
+Finally wire the services and test run your cli task.
 ```php
 <?php
 
+$date = date('Y/m/d');
 $awsCliPath = '/usr/local/bin/aws';
 $volumes = [
    new \AwsSnapshots\Options\VolumeOptions('vol-123af85a', 7, '1 day', 'dev server backup'),
-   new \AwsSnapshots\Options\VolumeOptions('vol-321bg96c', 4, '1 week', 'image server'),
+   new \AwsSnapshots\Options\VolumeOptions('vol-321bg96c', 4, '1 week', 'image server from ' . $date),
 ];
 
 $awsCliHandler = new \AwsSnapshots\Cli\AwsCliHandler($awsCliPath);
 
 $snapshots = new \AwsSnapshots\Snapshots($awsCliHandler);
 $snapshots->run($volumes);
+```
+
+Example wiring in Symfony services.yml:
+```yaml
+    aws_snapshots.cli.aws_cli_handler:
+        class: AwsSnapshots\Cli\AwsCliHandler
+        arguments:
+            - '%aws.cli_tool.path%'
+
+    aws_snapshots.snapshots:
+        class: AwsSnapshots\Snapshots
+        arguments:
+            - '@aws_snapshots.cli.aws_cli_handler'
 ```
 ### 2. Add cron job
 The cron job schedule will depend on your configuration. The class honors the interval setting, but you may not want it to run every minute of every day when you just need a nightly backup.
