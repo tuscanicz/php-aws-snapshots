@@ -2,6 +2,8 @@
 
 namespace AwsSnapshots\Cli;
 
+use AwsSnapshots\Cli\Filter\SnapshotsFilter;
+
 class AwsCliHandler
 {
     private $awsCliPath;
@@ -14,14 +16,14 @@ class AwsCliHandler
     /**
      * Get list of snapshots based on filters
      *
-     * @param  array $filters
+     * @param  SnapshotsFilter[] $filters
      * @return mixed json object on true
      */
     public function getSnapshots($filters = [])
     {
         $cmdFilters = '';
-        foreach ($filters as $name => $value) {
-            $cmdFilters .= 'Name=' . escapeshellarg($name) . ',Values=' . escapeshellarg($value) . ' ';
+        foreach ($filters as $filter) {
+            $cmdFilters .= 'Name=' . escapeshellarg($filter->getName()) . ',Values=' . escapeshellarg($filter->getValueWithAffixes()) . ' ';
         }
 
         $cmd = $this->awsCliPath . ' ec2 describe-snapshots ' . ($cmdFilters !== '' ? '--filters ' . trim($cmdFilters) : '');
@@ -49,7 +51,7 @@ class AwsCliHandler
      */
     public function createSnapshot($volumeId, $description)
     {
-        $cmd = sprintf($this->awsCliPath . ' ec2 create-snapshot --volume-id %s --description "' . escapeshellarg($description) . '"', escapeshellarg($volumeId));
+        $cmd = sprintf($this->awsCliPath . ' ec2 create-snapshot --volume-id %s --description %s', escapeshellarg($volumeId), escapeshellarg($description));
 
         return shell_exec($cmd);
     }

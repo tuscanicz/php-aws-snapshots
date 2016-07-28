@@ -2,6 +2,7 @@
 
 namespace AwsSnapshots;
 
+use AwsSnapshots\Cli\Filter\SnapshotsFilter;
 use AwsSnapshots\Options\VolumeOptions;
 use AwsSnapshots\Cli\AwsCliHandler;
 
@@ -38,12 +39,13 @@ class Snapshots
     private function shouldCreate(VolumeOptions $options, $volumesPrefix)
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
-            'volume-id' => $options->getVolumeId(),
-            'description' => $volumesPrefix . $options->getDescription()
+            new SnapshotsFilter('volume-id', $options->getVolumeId()),
+            new SnapshotsFilter('description', $volumesPrefix, SnapshotsFilter::MATCH_BEGINS_WITH)
         ]);
+        $snapshotCount = (!$snapshots) ? 0 : count($snapshots->Snapshots);
 
         // should create a snapshot if none exist and have to be at least one
-        if (count($snapshots->Snapshots) < 1 && $options->getSnapshotCountLimit() > 0) {
+        if ($snapshotCount < 1 && $options->getSnapshotCountLimit() > 0) {
             return true;
         }
 
@@ -67,16 +69,14 @@ class Snapshots
      *
      * @param  VolumeOptions $options
      * @param  string $volumesPrefix
-     *
-     * @return string
      */
     private function deleteExtra(VolumeOptions $options, $volumesPrefix)
     {
         $snapshots = $this->awsCliHandler->getSnapshots([
-            'volume-id' => $options->getVolumeId(),
-            'description' => $volumesPrefix . '*'
+            new SnapshotsFilter('volume-id', $options->getVolumeId()),
+            new SnapshotsFilter('description', $volumesPrefix, SnapshotsFilter::MATCH_BEGINS_WITH)
         ]);
-        $snapshotCount = count($snapshots->Snapshots);
+        $snapshotCount = (!$snapshots) ? 0 : count($snapshots->Snapshots);
 
         if ($snapshotCount > $options->getSnapshotCountLimit()) {
             for ($x = 0; $x < $snapshotCount - $options->getSnapshotCountLimit(); ++$x) {
