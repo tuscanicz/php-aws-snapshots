@@ -72,12 +72,12 @@ new VolumeIntervalBackupOptions(volumeId, snapshotCountLimit, interval, descript
 ```
 where the arguments are:
 
- | Name | Type | Description |
- |------|------|-------------|
- | *volume id* | string | AWS EBS volume ID
- | snapshot count limit | integer | total number of snapshots to store for a volume |
- | interval | string | how often to create snapshot (30 minute, 1 day, 7 day, 2 week - full list below)
- | description | string | snapshot description that shows in the Snapshot section within AWS console and is used to filter manual backups |
+| Name | Type | Description |
+|------|------|-------------|
+| *volume id* | string | AWS EBS volume ID
+| snapshot count limit | integer | total number of snapshots to store for a volume |
+| interval | string | how often to create snapshot (30 minute, 1 day, 7 day, 2 week - full list below)
+| description | string | snapshot description that shows in the Snapshot section within AWS console and is used to filter manual backups |
 
 ##### Regular Backups
 You can also backup a volume every time you run the PHP task by using:
