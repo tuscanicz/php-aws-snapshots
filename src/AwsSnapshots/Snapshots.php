@@ -3,6 +3,7 @@
 namespace AwsSnapshots;
 
 use AwsSnapshots\Cli\Filter\SnapshotsFilter;
+use AwsSnapshots\Options\VolumeIntervalBackupOptions;
 use AwsSnapshots\Options\VolumeOptions;
 use AwsSnapshots\Cli\AwsCliHandler;
 
@@ -38,13 +39,18 @@ class Snapshots
      */
     private function shouldCreate(VolumeOptions $options, $volumesPrefix)
     {
+        // Should create a snapshot if the volume is not backed in intervals.
+        if (get_class($options) !== VolumeIntervalBackupOptions::class) {
+            return true;
+        }
+
         $snapshots = $this->awsCliHandler->getSnapshots([
             new SnapshotsFilter('volume-id', $options->getVolumeId()),
             new SnapshotsFilter('description', $volumesPrefix, SnapshotsFilter::MATCH_BEGINS_WITH)
         ]);
         $snapshotCount = (!$snapshots) ? 0 : count($snapshots->Snapshots);
 
-        // should create a snapshot if none exist and have to be at least one
+        // Should create a snapshot if there are none of them created and have to be.
         if ($snapshotCount < 1 && $options->getSnapshotCountLimit() > 0) {
             return true;
         }
@@ -52,11 +58,10 @@ class Snapshots
         $shouldNotCreateDateTime = (new \DateTime('+ 3 minute'))->modify('-' . $options->getInterval());
         $latestVolumeSnapshotDateTime = new \DateTime(end($snapshots->Snapshots)->StartTime);
 
-        // use same timezones for comparison below
         $shouldNotCreateDateTime->setTimezone(new \DateTimeZone('EDT'));
         $latestVolumeSnapshotDateTime->setTimezone(new \DateTimeZone('EDT'));
 
-        // should create a snapshot if last one is before the interval time-frame
+        // Should create a snapshot if the last one was created before the specified interval.
         if ($latestVolumeSnapshotDateTime < $shouldNotCreateDateTime) {
             return true;
         }

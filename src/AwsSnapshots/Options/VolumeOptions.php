@@ -2,7 +2,7 @@
 
 namespace AwsSnapshots\Options;
 
-class VolumeOptions
+abstract class VolumeOptions
 {
     const VOLUMES_DESCRIPTION_DEFAULT_PREFIX = 'scheduled-snapshot-';
     const VOLUMES_DESCRIPTION_EMPTY_PREFIX = '';
