@@ -6,7 +6,7 @@ For example, you could create a snapshot every day and only keep the last 7 for 
 ## Requirements
 - [AWS CLI](http://aws.amazon.com/cli/)
 - AWS IAM snapshot permissions ([example policy](#example-iam-policy))
-- PHP 5.4+
+- PHP 5.5+
 - Access to crontab (or some other job scheduler)
 
 ## AWS CLI installation
