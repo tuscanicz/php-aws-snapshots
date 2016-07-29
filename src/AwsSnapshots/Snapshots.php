@@ -49,15 +49,15 @@ class Snapshots
             return true;
         }
 
-        $interval = (new \DateTime())->modify('-' . $options->getInterval());
-        $lastSnapshot = new \DateTime(end($snapshots->Snapshots)->StartTime);
+        $shouldNotCreateDateTime = (new \DateTime('+ 3 minute'))->modify('-' . $options->getInterval());
+        $latestVolumeSnapshotDateTime = new \DateTime(end($snapshots->Snapshots)->StartTime);
 
         // use same timezones for comparison below
-        $interval->setTimezone(new \DateTimeZone('EDT'));
-        $lastSnapshot->setTimezone(new \DateTimeZone('EDT'));
+        $shouldNotCreateDateTime->setTimezone(new \DateTimeZone('EDT'));
+        $latestVolumeSnapshotDateTime->setTimezone(new \DateTimeZone('EDT'));
 
         // should create a snapshot if last one is before the interval time-frame
-        if ($lastSnapshot < $interval) {
+        if ($latestVolumeSnapshotDateTime < $shouldNotCreateDateTime) {
             return true;
         }
 
