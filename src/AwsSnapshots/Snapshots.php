@@ -6,6 +6,8 @@ use AwsSnapshots\Cli\Filter\SnapshotsFilter;
 use AwsSnapshots\Options\VolumeIntervalBackupOptions;
 use AwsSnapshots\Options\VolumeOptions;
 use AwsSnapshots\Cli\AwsCliHandler;
+use AwsSnapshots\Stats\VolumeStats;
+use AwsSnapshots\Stats\VolumeStatsRecord;
 
 class Snapshots
 {
@@ -19,15 +21,21 @@ class Snapshots
     /**
      * @param VolumeOptions[] $volumes
      * @param string $volumesPrefix = Options::VOLUMES_DESCRIPTION_DEFAULT_PREFIX (optional)
+     * @return VolumeStats
      */
     public function run(array $volumes, $volumesPrefix = VolumeOptions::VOLUMES_DESCRIPTION_DEFAULT_PREFIX)
     {
+        $volumeStats = [];
         foreach ($volumes as $volume) {
-            if ($this->shouldCreate($volume, $volumesPrefix)) {
-                $this->awsCliHandler->createSnapshot($volume->getVolumeId(), $volumesPrefix . $volume->getDescription());
+            $volumeId = $volume->getVolumeId();
+            if ($volumeSnapshotCreated = $this->shouldCreate($volume, $volumesPrefix)) {
+                $this->awsCliHandler->createSnapshot($volumeId, $volumesPrefix . $volume->getDescription());
             }
-            $this->deleteExtra($volume, $volumesPrefix);
+            $deletedSnapshots = $this->deleteExtra($volume, $volumesPrefix);
+            $volumeStats[] = new VolumeStatsRecord($volumeId, $volumeSnapshotCreated, $deletedSnapshots);
         }
+
+        return new VolumeStats($volumeStats);
     }
 
     /**
@@ -70,13 +78,15 @@ class Snapshots
     }
 
     /**
-     * Delete extra snapshots if $snapshot limit is met
+     * Delete extra snapshots if $snapshot limit is met and returns deleted SnapshotIds
      *
      * @param  VolumeOptions $options
      * @param  string $volumesPrefix
+     * @return array
      */
     private function deleteExtra(VolumeOptions $options, $volumesPrefix)
     {
+        $deletedSnapshots = [];
         $snapshots = $this->awsCliHandler->getSnapshots([
             new SnapshotsFilter('volume-id', $options->getVolumeId()),
             new SnapshotsFilter('description', $volumesPrefix, SnapshotsFilter::MATCH_BEGINS_WITH)
@@ -85,8 +95,12 @@ class Snapshots
 
         if ($snapshotCount > $options->getSnapshotCountLimit()) {
             for ($x = 0; $x < $snapshotCount - $options->getSnapshotCountLimit(); ++$x) {
-                $this->awsCliHandler->deleteSnapshot($snapshots->Snapshots[$x]->SnapshotId);
+                $snapshotId = $snapshots->Snapshots[$x]->SnapshotId;
+                $this->awsCliHandler->deleteSnapshot($snapshotId);
+                $deletedSnapshots[] = $snapshotId;
             }
         }
+
+        return $deletedSnapshots;
     }
 }
